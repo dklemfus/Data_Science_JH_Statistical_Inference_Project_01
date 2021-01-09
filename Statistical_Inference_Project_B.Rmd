@@ -1,0 +1,88 @@
+---
+title: "Statistical Inference: Data Analysis"
+author: "Dan Klemfuss"
+date: "1/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(ggpubr)
+
+```
+### Table of Contents
+| [1. Overview](#section_1)
+| [2. Data Analysis: Tooth Growth](#section_2)
+|     [2.1 Summary of Data](#section_2_1)
+|     [2.2 Hypothesis Testing](#section_2_2)
+| [3. Conclusions](#section_3)
+
+### <a name="section_1"></a>  1. Overview:
+
+This report is an analysis of the 'ToothGrowth' data set in R, which captures the lenght of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two delivery methods: orange juice or ascorbic acid (a form of vitamin C). 
+
+The objective is to create a hypothesis of the data set, whether there is a significant difference between the two delivery methods by dosage. 
+
+### <a name="section_2"></a>  2. Data Analysis: Tooth Growth
+
+#### <a name="section_2_1"></a>  2.1 Summary of Data
+
+Begin by loading the built-in ToothGrowth dataset: 
+
+```{r section_2_1, echo=T}
+# Load ToothGrowth data set:
+data(ToothGrowth)
+# Summarize ToothGrowth data set (first 5 rows): 
+head(ToothGrowth) 
+# Show dimensions of the data set:
+dim(ToothGrowth) 
+# Show unique values of the fields:
+unique(ToothGrowth$supp)
+unique(ToothGrowth$dose)
+```
+
+The data set has `r dim(ToothGrowth)[1]` entries, with `r dim(ToothGrowth)[2]` fields.The 'supp' field has `r length(unique(ToothGrowth$supp))` factors, and the 'dose' field has `r length(unique(ToothGrowth$dose))` values. 
+
+#### <a name="section_2_2"></a>  2.2 Hypothesis Testing
+
+The test for the data will assess the hypothesis that the mean of the tooth Growth for the delivery methods and dosage is equal. The alternate hypothesis is that the tooth Growth for the delivery methods and dosage is not equal. To perform this assessment, a two-sample t-test will be used. From this, the test statistic, p-value, and 95% confidence interval in the mean values will be computed. 
+
+Performing a two-sample T-test: 
+
+```{r section_2_2, echo=T}
+dat <- ToothGrowth
+output <- list()
+# Iterate through all values of dosage: 
+for (i in unique(dat$dose)){
+  index <- as.character(i)
+  oj.len <- (ToothGrowth %>% filter(supp=="OJ" & dose==i))$len # Orange Juice
+  vc.len <- (ToothGrowth %>% filter(supp=="VC" & dose==i))$len # Absorbic Acid
+  # Run t-test:
+  test <- t.test(oj.len, vc.len, paired=F)
+  output[[index]] <- data.frame(
+    oj.mean = test$estimate[1],
+    vc.mean = test$estimate[2],
+    lower = test$conf[1],
+    upper = test$conf[2]
+  )
+}
+
+t <- as.data.frame(do.call(rbind, output))
+```
+
+##### **Results: Dose = 0.5 mg/day:** 
+For the dose of 0.5 mg/day, the average tooth growth rate for orange juice was `r t$oj.mean[1]` and for absorbic acid was `r t$vc.mean[1]`. The confidence interval is `r t$lower[1]` to `r t$upper[1]`, which does not span zero. Therefore we reject the null hypothesis that the delivery method for the dosage of 0.5 mg/day is equal. 
+
+##### **Results: Dose = 1.0 mg/day:**
+For the dose of 1.0 mg/day, the average tooth growth rate for orange juice was `r t$oj.mean[2]` and for absorbic acid was `r t$vc.mean[2]`. The confidence interval is `r t$lower[2]` to `r t$upper[2]`, which does not span zero. Therefore we reject the null hypothesis that the delivery method for the dosage of 1.0 mg/day is equal.
+
+##### **Results: Dose = 1.5 mg/day:**
+For the dose of 1.5 mg/day, the average tooth growth rate for orange juice was `r t$oj.mean[3]` and for absorbic acid was `r t$vc.mean[3]`. The confidence interval is `r t$lower[3]` to `r t$upper[3]`, which does span zero. Therefore we fail to reject the null hypothesis that the delivery method for the dosage of 1.5 mg/day is equal.
+
+### <a name="section_3"></a>  3. Conclusions
+
+Based on the results, there is a significant difference in tooth growth lengths when using Orange juice and Absorbic acid for doses of 0.5 and 1.0 mg/day. There is no significant difference in the mean tooth growth length between Orange juice and Absorbic acid for doses of 1.5 mg/day. 
+
